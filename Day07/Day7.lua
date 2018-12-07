@@ -1,28 +1,12 @@
 
 --[[
 
-Day 7: 
+Day 7: All things in good order...  Needed to realize that steps can have multiple prerequisites...
 
 ]]
 
 
 print("---------------- Day 7 ----------------")
-
-function printgrid(grid, min, max)
-  min = min or 0
-  max = max or 0
-  local out, tins = {}, table.insert
-  for row = min, max do
-    local outrow = {}
-    grid[row] = grid[row] or {}
-    for col = min, max do
-      tins(outrow, (grid[row][col] or '.'))
-    end
-    tins(out, table.concat(outrow))
-  end
-  print(table.concat(out, '\n'))
-end
-
 
 -- Read Test Inputs...
 TEST = {}
@@ -42,11 +26,6 @@ for line in io.lines("input") do
 end
 
 
-function Manhattan(x1, y1, x2, y2)
-  return (math.abs(x1-x2) + math.abs(y1-y2))
-end
-
-
 function getKeysSortedByValue(tbl, sortFunction)
   local keys = {}
   for key in pairs(tbl) do
@@ -61,38 +40,45 @@ function getKeysSortedByValue(tbl, sortFunction)
 end
 
 
-function Day7A(input)
-  -- table.insert(TEST, "Step F must be finished before step E can begin.")
+function LoadSortedData(input, BaseTime)
+  local ST = {}
   local prereqs = {}
   local STEPS = {}
-  local ST = {}
+  BaseTime = BaseTime or 0
+
+  -- table.insert(TEST, "Step F must be finished before step E can begin.")
   for _, line in ipairs(input) do
     local _, _, PRE, POST = line:find("Step (.-) must be finished before step (.-) can begin.")
-    --print(PRE, POST)
     prereqs[POST] = prereqs[POST] or {}
     table.insert(prereqs[POST], PRE)
 
-    -- Track all steps...
+    -- Track all steps...  Only log them once...
     if (not STEPS[PRE]) then table.insert(ST, PRE) end
     STEPS[PRE] = true
     if (not STEPS[POST]) then table.insert(ST, POST) end
     STEPS[POST] = true
   end
 
-  -- Sort steps into STEPS...
+  -- Sort steps back into STEPS...
   sortedKeys = getKeysSortedByValue(ST, function(a,b) return a < b end)
+  local STEPTIME, i = {}, 0
   for _, key in ipairs(sortedKeys) do
     table.insert(STEPS, ST[key])
+    i = i + 1
+    STEPTIME[ST[key]] = i + BaseTime
   end
-  ST = nil
+
+  return prereqs, STEPS, STEPTIME
+end
+
+
+function Day7A(input)
+  local prereqs, STEPS = LoadSortedData(input)
 
   local order = ""
   local used = {}
   local done = false
-  local count = 0
   while (not done) do
-    --count = count + 1 done = count > 20 -- Circuit Breaker...
-    print("------------------")
     local found = ""
     for k,v in ipairs(STEPS) do
       if (not used[v]) and (found == "") and (#(prereqs[v] or {}) == 0) then
@@ -104,12 +90,10 @@ function Day7A(input)
       for _, prereq in pairs(prereqs[v] or {}) do
         table.insert(out, prereq)
       end
-      print(k, v .. (used[v] or ""), #(prereqs[v] or {}), table.concat(out, ","))
+      --print(k, v .. (used[v] or ""), #(prereqs[v] or {}), table.concat(out, ","))
     end
-    print("order: " .. order)
 
     -- Remove 'found' letter...
-    --print("Removing: " .. found)
     if (found ~= "") then
       for _, v in ipairs(STEPS) do
         local loc = -1
@@ -120,51 +104,25 @@ function Day7A(input)
         end
         if (loc > 0) and ((prereqs[v] or {})[loc]) then
           table.remove(prereqs[v], loc)
-          --print("Removed " .. found .. " at [" .. v .. "][" .. loc .. "]")
         end
       end
     else
-      if found == "" then done = true end
+      print("Order: " .. order)
+      return order
     end
   end
 end
 
 
 -- Test PartA assertions
---Day7A(TEST)
---Day7A(INPUT)
---assert(Day7(TEST) == 240)
---assert(Day7(INPUT) == 102688)
+assert(Day7A(TEST) == "CABDFE")
+assert(Day7A(INPUT) == "LFMNJRTQVZCHIABKPXYEUGWDSO")
 
 
 function Day7B(input, numElves, BaseTime)
-  -- table.insert(TEST, "Step F must be finished before step E can begin.")
-  local prereqs = {}
-  local STEPS = {}
-  local ST = {}
-  for _, line in ipairs(input) do
-    local _, _, PRE, POST = line:find("Step (.-) must be finished before step (.-) can begin.")
-    --print(PRE, POST)
-    prereqs[POST] = prereqs[POST] or {}
-    table.insert(prereqs[POST], PRE)
+  local prereqs, STEPS, STEPTIME = LoadSortedData(input, BaseTime)
 
-    -- Track all steps...
-    if (not STEPS[PRE]) then table.insert(ST, PRE) end
-    STEPS[PRE] = true
-    if (not STEPS[POST]) then table.insert(ST, POST) end
-    STEPS[POST] = true
-  end
-
-  -- Sort steps into STEPS...
-  local STEPTIME, i = {}, 0
-  sortedKeys = getKeysSortedByValue(ST, function(a,b) return a < b end)
-  for _, key in ipairs(sortedKeys) do
-    i = i + 1
-    table.insert(STEPS, ST[key])
-    table.insert(STEPTIME, i + BaseTime)
-  end
-  ST = nil
-
+  --for k,v in pairs(STEPTIME) do print(k,v) end
 
   local order = ""
   local used = {}
@@ -178,7 +136,6 @@ function Day7B(input, numElves, BaseTime)
       for _, prereq in pairs(prereqs[v] or {}) do
         table.insert(out, prereq)
       end
-      --print(i, v .. " (" .. STEPTIME[i] .. " secs) " .. (used[v] or ""), #(prereqs[v] or {}), table.concat(out, ","))
 
       -- Check for empty line...
       if (not used[v]) and (not elfbusy[v]) and (#(prereqs[v] or {}) == 0) then
@@ -212,7 +169,6 @@ function Day7B(input, numElves, BaseTime)
   local curtime = 0
   local count = 0
   while (not done) do
-    --count = count + 1 done = count > 15
 
     if (numElves > 0) then
       print("------------------")
@@ -225,14 +181,13 @@ function Day7B(input, numElves, BaseTime)
         numElves = numElves - 1 
 
 
-        local time = STEPTIME[i]
+        local time = STEPTIME[c]
         elfbusy[c] = time
         print(c .. " job elf: Time: " .. time)
       else
         print("No Jobs...")
         if (numElves == maxElves) then
-          print("HERE")
-          done = true
+          return curtime, order
         end
 
         -- FFW to time when first elf is done...
@@ -297,11 +252,10 @@ function Day7B(input, numElves, BaseTime)
 
     end
   end
-  return curtime
+  return curtime, order
 end
 
 -- Test PartB assertions
---print(Day7B(TEST, 2, 0))
-print(Day7B(INPUT, 5, 60))
---assert(Day7B(INPUT, 10000) == 45509)
+assert(Day7B(TEST, 2, 0) == 15)
+assert(Day7B(INPUT, 5, 60) == 1180)
 
