@@ -25,27 +25,26 @@ end
 
 
 function ReadNode(input, partb)
-  partb = partb or false
   local pop = table.remove
-  local total, node = 0, {}
+  local node = { value = 0 }
 
   local num_childnodes, num_metadata = pop(input,1), pop(input,1)
 
   -- Insert Child Nodes...
   for i = 1, num_childnodes do
-    subnode, mdtotal = ReadNode(input, partb)
-    total = total + mdtotal
-    table.insert(node, subnode) -- 1-based nodes...
+    subnode = ReadNode(input, partb)
+    table.insert(node, subnode)
+
+    -- Don't double-count, if we're in PartB, we're counted below...
+    if (not partb) then node.value = node.value + subnode.value end
   end
   
-  node.value = 0
   -- Calculate value of node...  If 0 nodes (or part a), count all MD...
   if (#node < 1) or (not partb) then
     -- Sum up each metadata
     for i = 1, num_metadata do
       local value = pop(input,1)
       node.value = node.value + value
-      total = total + value
     end
   else
     for i = 1, num_metadata do
@@ -56,21 +55,16 @@ function ReadNode(input, partb)
     end
   end
   
-  --if (not partb) then
-  --  print("Node total: " .. total)
-  --else
-  --  print("Node value: " .. node.value)
-  --end
-
-  return node, total
+  --print("Node value: " .. node.value)
+  return node
 end
 
 
 -- Test PartA
-assert(select(2, ReadNode(ReadNumArray(TEST))) == 138)
-assert(select(2, ReadNode(ReadNumArray(INPUT))) == 42951)
+assert(ReadNode(ReadNumArray(TEST)).value == 138)
+assert(ReadNode(ReadNumArray(INPUT)).value == 42951)
 
 -- Test PartB
-assert((select(1,ReadNode(ReadNumArray(TEST), true)).value) == 66)
-assert((select(1,ReadNode(ReadNumArray(INPUT), true)).value) == 18568)
+assert(ReadNode(ReadNumArray(TEST), true).value == 66)
+assert(ReadNode(ReadNumArray(INPUT), true).value == 18568)
 
