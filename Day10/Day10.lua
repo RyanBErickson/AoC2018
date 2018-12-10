@@ -67,15 +67,13 @@ end
 
 function calcminmaxarea(points)
   local minx, miny, maxx, maxy = math.huge, math.huge, -math.huge, -math.huge
-  local abs = math.abs
-  for pc = 1, #points do
-    local p = points[pc]
+  for _, p in ipairs(points) do
     if (p.x > maxx) then maxx = p.x end
     if (p.x < minx) then minx = p.x end
     if (p.y > maxy) then maxy = p.y end
     if (p.y < miny) then miny = p.y end
   end
-  return abs(maxx-minx) * (abs(maxy-miny)), minx, maxx, miny, maxy -- Return area, min/max of x/y
+  return math.abs(maxx-minx) * (math.abs(maxy-miny)), minx, maxx, miny, maxy -- Return area, min/max of x/y
 end
 
 
@@ -100,8 +98,7 @@ function Day10(input)
     else
       -- Grid area is growing, print previous grid, as it was smallest... 'Rewind' and fill grid...
       local grid = {}
-      for pc = 1, #points do
-        local p = points[pc]
+      for _, p in ipairs(points) do
         p.x = p.x - p.dx 
         p.y = p.y - p.dy 
         grid[p.y] = grid[p.y] or {} 
