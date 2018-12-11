@@ -9,14 +9,12 @@ Day 10: Cut thin to win!
 print("---------------- Day 10 ----------------")
 
 
-function printgrid(grid, min, max)
-  min = min or 0
-  max = max or 0
+function printgrid(grid, minx, maxx, miny, maxy)
   local out, tins = {}, table.insert
-  for row = min, max do
+  for row = miny, maxy do
     local outrow = {}
     grid[row] = grid[row] or {}
-    for col = min, max do
+    for col = minx, maxx do
       tins(outrow, (grid[row][col] or '.'))
     end
     tins(out, table.concat(outrow))
@@ -67,48 +65,53 @@ for line in io.lines("input") do
 end
 
 
+function calcminmaxarea(points)
+  local minx, miny, maxx, maxy = math.huge, math.huge, -math.huge, -math.huge
+  for _, p in ipairs(points) do
+    if (p.x > maxx) then maxx = p.x end
+    if (p.x < minx) then minx = p.x end
+    if (p.y > maxy) then maxy = p.y end
+    if (p.y < miny) then miny = p.y end
+  end
+  return math.abs(maxx-minx) * (math.abs(maxy-miny)), minx, maxx, miny, maxy -- Return area, min/max of x/y
+end
+
+
 function Day10(input)
   local points, tins = {}, table.insert
 
   -- Load up points...
-  for i, line in pairs(input) do
+  for _, line in pairs(input) do
     local _, _, posx, posy, volx, voly = line:find("position=<(.-),(.-)> velocity=<(.-),(.-)>")
     tins(points, {x = tonumber(posx), y = tonumber(posy), dx = tonumber(volx), dy = tonumber(voly)})
   end
 
-  local gridsize = math.huge
-  local curgrid
-  local i = 0
+  local count = 0
+  local minarea = math.huge
 
   while (true) do
-    local sky = {}
-    local min = math.huge
-    local max = -math.huge
 
-    for p = 1, #points do
-      local x = points[p].x
-      local y = points[p].y
-      sky[y] = sky[y] or {} 
-      sky[y][x] = '*'
-      if (x < min) then min = x end
-      if (y < min) then min = y end
-      if (x > max) then max = x end
-      if (y > max) then max = y end
-    end
-
-    -- See if this grid is smaller than last one.  If so, store it...
-    -- Smallest version of grid should be the decodeable one...
-    if ((max - min) < gridsize) then
-      gridsize = max - min
-      curgrid = sky
+    -- See if this grid area is smaller than last one.  If so, keep going...  Smallest area of grid should be the decodeable one...
+    local area = calcminmaxarea(points)
+    if (area < minarea) then
+      minarea = area
     else
-      -- Once grid starts growing, print last one, as it was smallest...
-      print(i-1 .. " -----------------------------")
-      printgrid(curgrid, min, max)
-      return i-1
+      -- Grid area is growing, print previous grid, as it was smallest... 'Rewind' and fill grid...
+      local grid = {}
+      for _, p in ipairs(points) do
+        p.x = p.x - p.dx 
+        p.y = p.y - p.dy 
+        grid[p.y] = grid[p.y] or {} 
+        grid[p.y][p.x] = '*'
+      end
+
+      print("-------------------------------------------- " .. count-1 .. " --------------------------------------------")
+      local _, minx, maxx, miny, maxy = calcminmaxarea(points)
+      printgrid(grid, minx-1, maxx+1, miny-1, maxy+1) -- print with border of 1...
+      return count-1
     end
 
-    i = i + 1
+    count = count + 1
 
     -- Apply velocity to current points...
     for p = 1, #points do
@@ -120,6 +123,9 @@ function Day10(input)
 end
 
 
-assert(Day10(TEST) == 3) -- Only testing for which second if ended on... to see the message, see the output.
-assert(Day10(INPUT) == 10515) -- Same.
+-- Test TEST and INPUT values for ending second...
+-- Only testing for which second if ended on... to see the message, see the output.
+
+assert(Day10(TEST) == 3)
+assert(Day10(INPUT) == 10515)
 
